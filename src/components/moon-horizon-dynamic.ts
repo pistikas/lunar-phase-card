@@ -1,11 +1,14 @@
 // Lit
-import { LitElement, html, CSSResultGroup, TemplateResult, css, PropertyValues } from 'lit';
+import { LitElement, html, CSSResultGroup, TemplateResult, css, PropertyValues, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import tinycolor from 'tinycolor2';
 // Custom Card helpers
 import { FrontendLocaleData, formatDateShort, formatTime } from 'custom-card-helpers';
 // Chart.js
 import { Chart, ChartData, ChartOptions, Plugin, ScriptableLineSegmentContext } from 'chart.js/auto';
+
+
+
 // DateTime
 import { DateTime } from 'luxon';
 // Local imports
@@ -24,7 +27,7 @@ export class LunarHorizonDynamic extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ attribute: false }) moon!: Moon;
   @property({ attribute: false }) card!: LunarPhaseCard;
-  @property({ type: Number }) cardWidth: number = 0;
+  @property({ type: Number }) public cardWidth!: number;
 
   @state() public fillColors!: FILL_COLORS;
 
@@ -49,7 +52,7 @@ export class LunarHorizonDynamic extends LitElement {
 
   protected updated(_changedProperties: PropertyValues): void {
     if (!this.card.config || !this.moon) return;
-    if (_changedProperties.has('cardWidth') && this.cardWidth > 0) {
+    if (_changedProperties.has('cardWidth')) {
       if (this.dynamicChart) {
         this.dynamicChart.resize(this.cardWidth, this.cardHeight);
       }
@@ -58,7 +61,7 @@ export class LunarHorizonDynamic extends LitElement {
 
   get cardHeight(): number {
     let height = this.cardWidth * 0.5;
-    height = this.card.config.hide_header ? height : height - 48;
+    height = this.card.config.hide_buttons ? height : height - 48;
     return height;
   }
 
@@ -86,14 +89,15 @@ export class LunarHorizonDynamic extends LitElement {
           backdrop-filter: blur(4px);
           background: transparent !important;
           width: 100%;
-          height: 100%;
+          height: 60%;
           pointer-events: none;
           overflow: hidden;
-          z-index: 1;
+          z-index: 0;
           isolation: isolate;
           box-sizing: border-box;
           border-radius: 24px;
           will-change: backdrop-filter;
+          margin: -2px;
         }
 
         #dynamic-chart {
@@ -161,6 +165,8 @@ export class LunarHorizonDynamic extends LitElement {
     const ctx = this.shadowRoot!.getElementById('dynamic-chart') as HTMLCanvasElement;
     if (!ctx) return;
 
+    ctx.addEventListener('touchstart', this._onChartTouchStart.bind(this), { passive: false });
+    ctx.addEventListener('touchmove', this._onChartTouchStart.bind(this), { passive: false });
     ctx.addEventListener('touchend', this._onChartTouchEnd.bind(this));
 
     this.dynamicChart = new Chart(ctx, {
@@ -173,6 +179,9 @@ export class LunarHorizonDynamic extends LitElement {
     });
   }
 
+  private _onChartTouchStart(event: TouchEvent): void {
+    event.preventDefault();
+  }
   private _onChartTouchEnd(event: TouchEvent): void {
     const touch = event.changedTouches[0];
     const canvas = this.shadowRoot!.getElementById('dynamic-chart') as HTMLCanvasElement;
@@ -185,9 +194,10 @@ export class LunarHorizonDynamic extends LitElement {
   }
 
   protected render(): TemplateResult {
+    const useBackground = this.card.config.show_background;
     return html`
       <div id="horizon-dynamic-chart">
-        <div id="blur-overlay"></div>
+        ${useBackground ? html` <div id="blur-overlay"></div>` : nothing}
         <canvas id="dynamic-chart" width="${this.cardWidth}" height="${this.cardHeight}"></canvas>
       </div>
     `;
@@ -212,7 +222,7 @@ export class LunarHorizonDynamic extends LitElement {
     };
     const chartData = this.todayData.chartData;
     const labels = chartData.map((data) => formatTime(new Date(data.timeLabel), this._locale));
-    const moonData = chartData.map((data) => data.moon);
+    const moonData = chartData.map((data) => data.moon.altitude);
     const moonDataset = {
       label: 'Moon',
       data: moonData,
@@ -241,14 +251,17 @@ export class LunarHorizonDynamic extends LitElement {
 
   private _getChartOptions(): ChartOptions {
     const elevationLabel = this.card.localize('card.altitude');
+    const azimuthLabel = this.card.localize('card.azimuth');
+    const { DEFAULT_PRIMARY_COLOR } = this.CSS_COLOR;
     const formatedTitle = (time: number) => {
       const dateStr = formatDateShort(new Date(time), this._locale);
       return `${dateStr}`;
     };
     const chartData = this.todayData.chartData;
-    const values = [...Object.values(chartData).map((data) => data.moon)];
+    const direction = chartData.map((data) => data.moon.azimuth);
+    const values = [...Object.values(chartData).map((data) => data.moon.altitude)];
     const minMax = {
-      suggestedMin: Math.round(Math.min(...values) - 10),
+      suggestedMin: Math.round(Math.min(...values) - 30),
       suggestedMax: Math.round(Math.max(...values) + 30),
     };
     const SHARED_TICKS_Y = {
@@ -301,18 +314,25 @@ export class LunarHorizonDynamic extends LitElement {
     };
 
     plugins['tooltip'] = {
-      titleColor: CHART_COLOR.SECONDARY_TEXT,
+      titleColor: DEFAULT_PRIMARY_COLOR,
       displayColors: false,
-      padding: 10,
+      // padding: 10,
       callbacks: {
-        beforeTitle: function (tooltipItem) {
+        title: function (tooltipItem) {
           const time = chartData[tooltipItem[0].dataIndex].timeLabel;
           const formatedDate = formatedTitle(time);
-          return formatedDate;
+          const formatedTime = tooltipItem[0].label;
+          return `${formatedDate} - ${formatedTime}`;
         },
+
         label: function (tooltipItem) {
+          const itemIndex = tooltipItem.parsed.x;
+          const directionValue = direction[itemIndex];
           const value = Math.round(tooltipItem.parsed.y);
-          return `${elevationLabel}: ${value}°`;
+          const azimuth = `${azimuthLabel}: ${directionValue}`;
+          const elevation = `${elevationLabel}: ${value}°`;
+          const body = [elevation, azimuth];
+          return body;
         },
       },
     };
@@ -325,11 +345,12 @@ export class LunarHorizonDynamic extends LitElement {
     };
     options.responsive = true;
     options.maintainAspectRatio = false;
-    options.resizeDelay = 50;
+    options.resizeDelay = 100;
+    // options.devicePixelRatio = 2;
     options.layout = layout;
     options.scales = scales;
     options.plugins = plugins;
-    options.events = ['mousemove', 'mouseout', 'touchstart', 'touchmove'];
+    options.events = ['mousemove', 'mouseout', 'touchstart', 'touchmove', 'click'];
 
     return options;
   }
@@ -337,7 +358,7 @@ export class LunarHorizonDynamic extends LitElement {
   private _nowPosition(): Plugin {
     const chartData = this.todayData.chartData;
     const emoji = this.todayData.moonIllumination.phase.emoji;
-    const emojiFontSize = '18px Arial';
+    const emojiFontSize = '14px Arial';
     const timeLabels = chartData.map((data) => data.timeLabel);
     const now = this._date;
     const closestTime = timeLabels.reduce((a, b) =>
@@ -347,7 +368,7 @@ export class LunarHorizonDynamic extends LitElement {
     const index = timeLabels.indexOf(closestTime);
     return {
       id: 'nowLine',
-      beforeDatasetsDraw: (chart: Chart) => {
+      beforeDatasetDraw: (chart: Chart) => {
         const now = this._date;
         const closestTime = timeLabels.reduce((a, b) =>
           Math.abs(b - now.getTime()) < Math.abs(a - now.getTime()) ? b : a
@@ -360,7 +381,7 @@ export class LunarHorizonDynamic extends LitElement {
           chartArea: { bottom },
         } = chart;
         const xLabel = chart.scales.x.getPixelForValue(index);
-        const yLabel = chart.scales.y.getPixelForValue(chartData[index].moon);
+        const yLabel = chart.scales.y.getPixelForValue(chartData[index].moon.altitude);
         // const lineColor = hexToRgba(CHART_COLOR.STROKE_LINE, 0.7);
         ctx.font = '12px Arial';
         const width = ctx.measureText(nowText).width;
@@ -378,11 +399,11 @@ export class LunarHorizonDynamic extends LitElement {
         // Draw the time label below the line
         ctx.font = '12px Arial';
         ctx.fillStyle = CHART_COLOR.PRIMARY_TEXT;
-        ctx.fillText(nowText, xLabel - width / 2, bottom - 10);
+        ctx.fillText(nowText, xLabel - width / 2, bottom - 5);
         ctx.restore();
       },
 
-      afterDatasetsDraw: (chart: Chart) => {
+      afterDatasetDraw: (chart: Chart) => {
         const dataSet = chart.getDatasetMeta(0);
         const {
           ctx,
@@ -394,7 +415,7 @@ export class LunarHorizonDynamic extends LitElement {
           const xPosition = x.getPixelForValue(index) - emojiSize.width / 2;
           const totalHeight = emojiSize.actualBoundingBoxAscent + emojiSize.actualBoundingBoxDescent;
           const yPosition =
-            y.getPixelForValue(chartData[index].moon) + emojiSize.actualBoundingBoxAscent - totalHeight / 2;
+            y.getPixelForValue(chartData[index].moon.altitude) + emojiSize.actualBoundingBoxAscent - totalHeight / 2;
 
           ctx.save();
           ctx.font = emojiFontSize;
@@ -469,24 +490,27 @@ export class LunarHorizonDynamic extends LitElement {
         if (!chartArea || !scales.x || !scales.y) {
           return;
         }
+
         const { left, right, bottom, top } = chartArea;
-        const midX = chart.scales.x.getPixelForValue(closestTimeIndex);
-        const midY = chart.scales.y.getPixelForValue(0);
-        const gradientHeight = (bottom - top) * 0.8;
+        const midX = scales.x.getPixelForValue(closestTimeIndex);
+        const midY = scales.y.getPixelForValue(0);
+        const gradientHeight = (bottom - top) * 0.5;
 
         // Create gradients
         const createGradient = (startX: number, color: string) => {
           const gradient = ctx.createLinearGradient(startX, bottom, startX, bottom - gradientHeight);
-          gradient.addColorStop(0, hexToRgba(color, 0.8));
-          gradient.addColorStop(0.7, hexToRgba(color, 0.6));
+          gradient.addColorStop(0, hexToRgba(color, 1));
           gradient.addColorStop(1, hexToRgba(color, 0));
           return gradient;
         };
 
         ctx.save();
+
+        // Draw left gradient
         ctx.fillStyle = createGradient(left, fillColor.today);
         ctx.fillRect(left, bottom - gradientHeight, midX - left, gradientHeight);
 
+        // Draw right gradient
         ctx.fillStyle = createGradient(midX, fillColor.nextDay);
         ctx.fillRect(midX, bottom - gradientHeight, right - midX, gradientHeight);
 
@@ -508,6 +532,8 @@ export class LunarHorizonDynamic extends LitElement {
         ctx.stroke();
 
         ctx.restore();
+
+        // Draw labels for the markers
         drawLabels(ctx, midX, top);
       },
     };
@@ -533,7 +559,9 @@ export class LunarHorizonDynamic extends LitElement {
       primary: '0.9rem Arial',
       secondary: '0.8rem Arial',
     };
-
+    const chartData = this.todayData.chartData;
+    const values = [...Object.values(chartData).map((data) => data.moon.altitude)];
+    const minValue = Math.min(...values);
     const isPast = (time: number): boolean => new Date(time) < this._date;
 
     const calculateDuration = (time: number): string => {
@@ -576,11 +604,7 @@ export class LunarHorizonDynamic extends LitElement {
       if (relativeTime) drawText(relativeTime, 35, fontSize.secondary);
     };
 
-    const drawMarkers = (
-      chart: Chart,
-      times: { time: string; index: number; originalTime: number }[],
-      lineHeight: number
-    ) => {
+    const drawMarkers = (chart: Chart, times: { time: string; index: number; originalTime: number }[]) => {
       const {
         ctx,
         scales: { x, y },
@@ -591,31 +615,37 @@ export class LunarHorizonDynamic extends LitElement {
         const yPos = y.getPixelForValue(0);
         const color = isPast(time.originalTime) ? labelColors.lightColor : labelColors.baseColor;
         const relativeTime = isPast(time.originalTime) ? '' : calculateDuration(time.originalTime);
+        const lineHeight = (y.getPixelForValue(minValue) - yPos) / 2;
         drawPoint(ctx, xPos, yPos, color, time.time, lineHeight, relativeTime);
       });
     };
 
     return {
       id: 'timesMarkers',
-      afterDatasetDraw: (chart: Chart) => {
+      beforeDatasetDraw: (chart: Chart) => {
         const moonTimes = this.moon.timeData.moon;
-
-        drawMarkers(chart, moonTimes, 20);
+        drawMarkers(chart, moonTimes);
       },
     };
   }
 
+
+
   private _expandChartArea = (): Plugin => {
     return {
       id: 'expandChartArea',
-      beforeRender: (chart: Chart) => {
+      afterRender: (chart: Chart) => {
+        chart.chartArea.left = 0;
         chart.chartArea.right = this.cardWidth;
         chart.chartArea.bottom = this.cardHeight;
+        chart.chartArea.top = 0;
       },
 
       afterUpdate: (chart: Chart) => {
+        chart.chartArea.left = 0;
         chart.chartArea.right = this.cardWidth;
         chart.chartArea.bottom = this.cardHeight;
+        chart.chartArea.top = 0;
       },
     };
   };

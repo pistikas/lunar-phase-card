@@ -61,21 +61,21 @@
     },
     "editor": {
         "viewConfig": {
-            "title": "Sprach- und Ansichtsmodus",
+            "title": "Sprache und Darstellung",
             "description": "Einstellung der Sprache und des Hintergrunds",
             "customBackground": {
-                "title": "Benutzerdefinierter Hintergrund",
-                "description": "Konfiguration für benutzerdefinierten Hintergrund festlegen"
+                "title": "Hintergrund",
+                "description": "Einstellung für den Wunsch-Hintergrund"
             }
         },
         "baseConfig": {
             "title": "Breiten- und Längengrad",
-            "description": "Breiten- und Längengradkonfiguration"
+            "description": "Einstellung des Breiten- und Längengrades"
         },
         "optionsConfig": {
-            "useDefault": "Systemeinstellungen verwenden",
+            "useDefault": "Systemeinstellung verwenden",
             "useEntity": "Entität verwenden",
-            "useCustom": "Benutzerdefinierte Einstellungen verwenden "
+            "useCustom": "Eigene Einstellung"
         },
         "fontOptions": {
             "title": "Schriftartanpassung",
@@ -86,8 +86,8 @@
                 "description": "Schrift der Überschrift anpassen"
             },
             "labelFontConfig": {
-                "title": "Labels",
-                "description": "Schrift der Labels anpassen"
+                "title": "Label",
+                "description": "Schrift der Label anpassen"
             },
             "headerFontSize": "Schriftgröße der Überschrift",
             "headerFontColor": "Schriftfarbe der Überschrift",
@@ -101,40 +101,59 @@
             "title": "Diagramm-Anpassung",
             "description": "Konfiguration für das Diagramm einstellen",
             "type": {
-                "title": "Grafiktyp",
-                "description": "Wählen Sie einen Grafiktyp aus"
+                "title": "Diagrammtyp",
+                "description": "Typ des Diagramms auswählen"
             },
             "visibility": {
                 "title": "Sichtbarkeitsoptionen",
-                "description": "Spezifische Elemente ausblenden oder anzeigen"
+                "description": "Einzelne Elemente aus- oder einblenden"
             },
             "customization": {
                 "title": "Anpassungsoptionen",
-                "description": "Passen Sie die Grafik an"
+                "description": "Details des Diagramms anpassen"
             }
         },
         "compactView": "Kompakte Ansicht",
-        "showBackground": "Hintergrund anzeigen",
+        "showBackground": "Hintergrund einblenden",
         "timeFormat": "12-Stunden-Zeitformat",
         "mileUnit": "Meilen als Maßeinheit",
-        "hideHeader": "Header ausblenden",
         "yTicks": "Y-Achse beschriften",
         "xTicks": "X-Achse beschriften",
         "showTime": "Zeitmarken für Auf-/Untergang",
         "showCurrent": "Aktuelle Mondposition",
         "showLegend": "Legende einblenden",
         "showHighest": "Kulmination einblenden",
+        "calendarModal": "Kalender-Popup",
+        "hideButtons": "Schaltflächen ausblenden",
+        "titleHelper": {
+            "compactView": "Kompakte Ansicht anzeigen",
+            "showBackground": "Hintergrund einblenden",
+            "timeFormat": "Zeitformat einstellen (12 oder 24 Stunden)",
+            "mileUnit": "Wenn deaktiviert werden Kilometer verwendet",
+            "yTicks": "Y-Achsen-Markierungen einblenden",
+            "xTicks": "X-Achsen-Markierungen einblenden",
+            "showTime": "Aufgangs-/Untergangszeit einblenden",
+            "showCurrent": "Aktuelle Mondposition einblenden",
+            "showLegend": "Eine Legende einblenden",
+            "showHighest": "Höchste Mondposition anzeigen",
+            "calendarModal": "Kalender in einem Popup anzeigen",
+            "hideButtons": "Tasten in Kopfleiste ausblenden",
+            "useDefault": "Standardwerte für Breiten- und Längengrad verwenden",
+            "useEntity": "Breiten- und Längengrad einer Entität verwenden",
+            "useCustom": "Eigene Breiten- und Längengradwerte verwenden",
+            "hideLabel": "Label in kompakter Ansicht ausblenden"
+        },
         "placeHolder": {
-            "latitude": "Breitengrad eingeben",
-            "longitude": "Längengrad eingeben",
+            "latitude": "Breitengrad",
+            "longitude": "Längengrad",
             "customBackground": "URL oder Pfad zum Hintergrundbild",
             "language": "Sprachauswahl",
-            "moonPosition": "Mondposition auf der Karte auswählen",
-            "defaultCard": "Standardkarte auswählen",
+            "moonPosition": "Mondposition auf der Karte",
+            "defaultCard": "Standardkarte",
             "yTicksPosition": "Position der Y-Beschriftung",
             "legendPosition": "Position der Legende",
             "legendAlign": "Ausrichtung der Legende",
-            "graphType": "Grafiktyp"
+            "graphType": "Diagrammtyp"
         }
     }
 }

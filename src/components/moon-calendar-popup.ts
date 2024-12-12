@@ -25,7 +25,7 @@ export class LunarCalendarPopup extends LitElement {
       styles,
       css`
         #lunar-calendar {
-          max-width: 500px;
+          /* max-width: 500px; */
           margin: 0 auto;
           backdrop-filter: blur(10px);
           background: var(--ha-card-background-color, var(--secondary-background-color));
@@ -46,9 +46,10 @@ export class LunarCalendarPopup extends LitElement {
           flex-direction: row;
           justify-content: space-between;
           align-items: center;
-          font-weight: 600;
-          font-size: 1.3rem;
+          /* font-weight: 600; */
+          font-size: initial;
         }
+
         .calendar-header__month {
           display: flex;
           align-items: center;
@@ -71,14 +72,9 @@ export class LunarCalendarPopup extends LitElement {
           display: grid;
           grid-template-columns: repeat(7, 1fr);
           /* grid-template-rows: repeat(7, 1fr); */
-          padding: 0.5em;
+          padding: 0.3em;
           cursor: default;
-          gap: 2px 4px;
-        }
-        @media screen and (max-width: 800px) {
-          #calendar-grid {
-            grid-template-rows: auto;
-          }
+          /* gap: 2px 4px; */
         }
         .day-of-week {
           text-align: center;
@@ -128,6 +124,19 @@ export class LunarCalendarPopup extends LitElement {
             color: var(--accent-color);
           }
         }
+        @media screen and (max-width: 800px) {
+          #calendar-grid {
+            grid-template-rows: auto;
+          }
+          .calendar-header {
+            font-size: 1rem;
+            font-weight: 400;
+          }
+          .calendar-day > .day-symbol {
+            font-size: 1rem;
+            padding: 0;
+          }
+        }
       `,
     ];
   }
@@ -145,7 +154,7 @@ export class LunarCalendarPopup extends LitElement {
       <div id="lunar-calendar" class=${backgroundClass}>
         <div class="calendar-header">
           ${renderNavButton(ICON.CLOSE, () => {
-            this.card._calendarPopup = false;
+            this._dispatchEvent('close', {});
             this.viewDate = DateTime.local().startOf('month');
           })}
           <div class="calendar-header__year">
@@ -186,7 +195,11 @@ export class LunarCalendarPopup extends LitElement {
       const moonPhaseIcon = this.moon._getEmojiForPhase(date.toJSDate());
 
       return html`
-        <div title="${moonPhase}" class=${dayClass} @click=${() => this._handleDateSelect(date.toJSDate())}>
+        <div
+          title="${moonPhase}"
+          class=${dayClass}
+          @click=${() => this._dispatchEvent('date-select', { date: date.toJSDate() })}
+        >
           <div class="day-num">${label}</div>
           <div class="day-symbol">${moonPhaseIcon}</div>
         </div>
@@ -200,13 +213,26 @@ export class LunarCalendarPopup extends LitElement {
     `;
   }
 
+  private _dispatchEvent(action: string, detail: any): void {
+    this.dispatchEvent(
+      new CustomEvent('calendar-action', {
+        detail: {
+          action,
+          ...detail,
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
   private _setEventListeners(): void {
     const grid = this.shadowRoot?.getElementById('calendar-grid');
     if (grid) {
       // close popup if is clicked to empty space
       grid.addEventListener('click', (e) => {
         if (e.target === grid) {
-          this.card._calendarPopup = false;
+          this._dispatchEvent('close', {});
           this.viewDate = DateTime.local().startOf('month');
         }
       });
@@ -222,15 +248,6 @@ export class LunarCalendarPopup extends LitElement {
         .toFormat('ccc');
     });
     return daysOfTheWeek;
-  }
-
-  private _handleDateSelect(date: Date): void {
-    // Update the selected date in the card
-    this.card.selectedDate = date;
-    setTimeout(() => {
-      this.viewDate = DateTime.local().startOf('month');
-      this.card._calendarPopup = false;
-    }, 300);
   }
 
   private _updateCalendarDate(type: 'months' | 'years', action: 'prev' | 'next'): void {

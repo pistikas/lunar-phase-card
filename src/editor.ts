@@ -85,6 +85,10 @@ export class LunarPhaseCardEditor extends LitElement implements LovelaceCardEdit
       fireEvent(this, 'config-changed', { config: this._config });
       await _saveConfig(cardId, this._config);
       console.log('Config is valid');
+    } else if (isValid && config.cardId !== undefined) {
+      this._config = { ...config, cardId: undefined };
+      fireEvent(this, 'config-changed', { config: this._config });
+      console.log('Config is valid, removing cardId', config.cardId);
     }
   }
 
@@ -164,7 +168,7 @@ export class LunarPhaseCardEditor extends LitElement implements LovelaceCardEdit
     const radiosOptions = this._getBaseConfigSelector().options;
     const radios = radiosOptions.map((item) => {
       return html`
-        <ha-formfield .label=${item.label}>
+        <ha-formfield .label=${item.label} .title=${item.title} style="cursor: help;">
           <ha-radio
             .checked=${this._config ? this._config[item.key] : false}
             .value=${item.key}
@@ -205,7 +209,7 @@ export class LunarPhaseCardEditor extends LitElement implements LovelaceCardEdit
           <div class="comboboxes">${radios} ${southern}</div>
         `}`;
 
-    return this.contentTemplate('baseConfig', 'baseConfig', 'mdi:cog', contentWrapp);
+    return this.contentTemplate('baseConfig', 'baseConfig', 'mdi:longitude', contentWrapp);
   }
 
   private _renderLocation(): TemplateResult {
@@ -328,7 +332,8 @@ export class LunarPhaseCardEditor extends LitElement implements LovelaceCardEdit
       { label: 'showBackground', configValue: 'show_background' },
       { label: 'timeFormat', configValue: '12hr_format' },
       { label: 'mileUnit', configValue: 'mile_unit' },
-      { label: 'hideHeader', configValue: 'hide_header' },
+      { label: 'hideButtons', configValue: 'hide_buttons' },
+      { label: 'calendarModal', configValue: 'calendar_modal' },
     ];
 
     const viewOptions = html`
@@ -405,8 +410,8 @@ export class LunarPhaseCardEditor extends LitElement implements LovelaceCardEdit
       { label: 'xTicks', configValue: 'x_ticks' },
       { label: 'showTime', configValue: 'show_time' },
       { label: 'showCurrent', configValue: 'show_current' },
-      { label: 'showLegend', configValue: 'show_legend' },
-      { label: 'showHighest', configValue: 'show_highest' },
+      // { label: 'showLegend', configValue: 'show_legend' },
+      // { label: 'showHighest', configValue: 'show_highest' },
     ];
 
     const checkBoxes = html`
@@ -429,8 +434,8 @@ export class LunarPhaseCardEditor extends LitElement implements LovelaceCardEdit
     const graphType = [{ items: ['default', 'dynamic'], label: 'graphType', value: 'graph_type' }];
 
     const comboBoxes = [
-      { items: ['top', 'bottom'], label: 'legendPosition', value: 'legend_position' },
-      { items: ['start', 'center', 'end'], label: 'legendAlign', value: 'legend_align' },
+      // { items: ['top', 'bottom'], label: 'legendPosition', value: 'legend_position' },
+      // { items: ['start', 'center', 'end'], label: 'legendAlign', value: 'legend_align' },
       { items: ['left', 'right'], label: 'yTicksPosition', value: 'y_ticks_position' },
     ];
 
@@ -691,17 +696,20 @@ export class LunarPhaseCardEditor extends LitElement implements LovelaceCardEdit
 
   private _tempCheckBox = (labelKey: string, configValueKey: string, configKey?: string): TemplateResult => {
     const checkedValue = configKey ? this._config?.[configKey]?.[configValueKey] : this._config?.[configValueKey];
+    const titleHelper = labelKey === 'fontOptions.hideLabel' ? 'hideLabel' : labelKey;
     return html` <ha-selector
       .hass=${this.hass}
       .value=${checkedValue}
       .configValue=${configValueKey}
       .label=${this.localize(`editor.${labelKey}`)}
+      .title=${this.localize(`editor.titleHelper.${titleHelper}`)}
       .required=${false}
       .configKey=${configKey}
       .selector=${{
         boolean: {},
       }}
       @value-changed=${this._handleValueChange}
+      style="cursor: help;"
     ></ha-selector>`;
   };
 
@@ -858,20 +866,23 @@ export class LunarPhaseCardEditor extends LitElement implements LovelaceCardEdit
     }
   }
 
-  private _getBaseConfigSelector(): { options: { key: string; label: string }[] } {
+  private _getBaseConfigSelector(): { options: { key: string; label: string; title: string }[] } {
     return {
       options: [
         {
           key: 'use_default',
           label: this.localize('editor.optionsConfig.useDefault'),
+          title: this.localize('editor.titleHelper.useDefault'),
         },
         {
           key: 'use_custom',
           label: this.localize('editor.optionsConfig.useCustom'),
+          title: this.localize('editor.titleHelper.useCustom'),
         },
         {
           key: 'use_entity',
           label: this.localize('editor.optionsConfig.useEntity'),
+          title: this.localize('editor.titleHelper.useEntity'),
         },
       ],
     };

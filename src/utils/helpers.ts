@@ -28,7 +28,6 @@ export function getDefaultConfig(hass: HomeAssistant) {
   const selected_language = hass.language;
   const timeFormat = useAmPm(hass.locale);
   const mile_unit = length !== 'km';
-  const cardId = `lmc-${Math.random().toString(36).substring(2, 9)}`;
   console.log(
     'default config',
     'latitude:',
@@ -40,9 +39,7 @@ export function getDefaultConfig(hass: HomeAssistant) {
     'timeFormat:',
     timeFormat,
     'mile_unit:',
-    mile_unit,
-    'cardId:',
-    cardId
+    mile_unit
   );
   return {
     latitude,
@@ -50,7 +47,6 @@ export function getDefaultConfig(hass: HomeAssistant) {
     selected_language,
     '12hr_format': timeFormat,
     mile_unit,
-    cardId,
   };
 }
 
@@ -185,9 +181,8 @@ export function _handleOverflow(card: LunarPhaseCard): void {
   if (!card) return;
   const lpcHeader = card.shadowRoot?.getElementById('lpc-header') as HTMLElement;
   const headerEl = lpcHeader?.querySelector('.header-title') as HTMLElement;
-  const titleEl = headerEl?.querySelector('h1') as HTMLElement;
+  const titleEl = headerEl?.querySelector('.title') as HTMLElement;
   if (!headerEl || !titleEl) return;
-
   const clientWidth = headerEl.clientWidth;
   const scrollWidth = titleEl.scrollWidth;
   const overflow = scrollWidth > clientWidth;
